@@ -1,0 +1,104 @@
+#!/bin/sh
+
+#   run_flirt - wrapper script for "first", the main FIRST fitting
+#
+#   Brian Patenaude and Matthew Webster, FMRIB Image Analysis Group
+#
+#   Copyright (C) 2006-2009 University of Oxford
+#
+#   SHCOPYRIGHT
+
+Usage() {
+    echo ""
+    echo "Usage:   run_first -i <input_image> -t <input_to_mni.mat> -n <N-modes> -o <output_basename> -m <model_name> [options]"
+    echo ""
+    echo "-v                   : verbose"
+    echo "-intref <model_name> : reference structure for the local intensity normalization"
+    echo "-loadBvars <bvars>   : initializes FIRST with a previous estimate of the structure"
+    echo "-multipleImages : run first on multiple images, need to provide a list of images, transformation matrices, and output names"
+    #echo "-wfnirt <warp_field> : use FNIRT warp field instead of linear transformation matrix"
+    echo ""
+    echo "e.g.:  run_first -i im1 -t im1_to_mni.mat -n 60 -o output_name -m ${FSLDIR}/data/first/models_317_bin/L_Hipp_bin.bmv"
+    echo ""
+    exit 1
+}
+
+debug=0
+required=0
+useMultiImage=0
+while [ _$1 != _ ] ; do
+
+    if [ $1 = -v ] ; then
+        verbose=-v
+        shift
+    elif [ $1 = -m ] ; then
+	required=`echo $required + 1 | bc`
+	model=$2
+	shift 2
+    elif [ $1 = -t ] ; then
+	required=`echo $required + 1 | bc`
+	trmat=$2
+	shift 2
+    elif [ $1 = -i ] ; then
+	required=`echo $required + 1 | bc`
+	image=`${FSLDIR}/bin/remove_ext $2`
+	shift 2
+    elif [ $1 = -n ] ; then
+	required=`echo $required + 1 | bc`
+	modes=$2
+	shift 2
+    elif [ $1 = -intref ] ; then
+	comExtras="$comExtras --intref -p $2" 
+	shift 2
+    elif [ $1 = -loadBvars ] ; then
+	comExtras="$comExtras --loadbvars -o $2"
+	shift 2
+    elif [ $1 = -shcond ] ; then
+	comExtras="$comExtras --shcond -b $2"
+	shift 2
+	elif [ $1 = -wfnirt ] ; then
+	comExtras="$comExtras --useFNIRT_warpField -w $2"
+	shift 2
+    elif [ $1 = -o ] ; then
+	required=`echo $required + 1 | bc`
+	outname=$2
+	shift 2
+	elif [ $1 = -multipleImages ] ; then
+	useMultiImage=1
+	shift 1
+    else
+	Usage
+    fi
+done
+
+if [ $useMultiImage -eq 1 ] ; then 
+		[ ! -f $image ] && Usage
+	[ ${required} -ne 4 ] && Usage
+
+else
+[ `${FSLDIR}/bin/imtest $image` = 0 ] && Usage
+[ ${required} -ne 5 ] && Usage
+
+if [ ! -f ${trmat} ] ; then
+    echo "linear transformation matrix file not found"
+    exit 1
+fi
+
+
+fi 
+
+
+if [ ! -f ${model} ] ; then
+    echo "model file not found"
+    exit 1
+fi
+
+
+
+
+if [ $useMultiImage -eq 1 ] ; then 
+
+	${FSLDIR}/bin/first -i $image -l dummy -m $model -k $outname -n $modes  $verbose $comExtras  --multiImageInput
+else
+	 ${FSLDIR}/bin/first -i $image -l $trmat -m $model -k $outname -n $modes  $verbose $comExtras 
+fi;

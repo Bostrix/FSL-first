@@ -1,0 +1,36 @@
+#!/bin/sh
+
+#   first3Dview - display FIRST results in 3D
+#
+#   Mark Jenkinson and Matthew Webster, FMRIB Image Analysis Group
+#
+#   Copyright (C) 2014 University of Oxford
+#
+#   SHCOPYRIGHT
+
+if [ $# -lt 2 ] ; then
+  echo "`basename $0` <mask image> <corrp image>"
+  exit 1
+fi
+
+maskim=$1
+corrpim=$2
+
+basename=`$FSLDIR/bin/remove_ext $2`
+#calculate filled structure
+$FSLDIR/bin/fslmaths $maskim -binv ${basename}_invmask
+$FSLDIR/bin/fsl-cluster -t 0.5 -i ${basename}_invmask -o ${basename}_invmask_comps --connectivity=6 --no_table
+maxc=`$FSLDIR/bin/fslstats ${basename}_invmask_comps -P 100`
+maxc1=`echo $maxc -1 | bc`
+$FSLDIR/bin/fslmaths ${basename}_invmask_comps -uthr $maxc1 -thr 1 -add $maskim -bin ${basename}_filledstruct
+#remove significant voxels from structure
+$FSLDIR/bin/fslmaths $corrpim -thr 0.95 -bin -mul -1 -add ${basename}_filledstruct ${basename}_basestruct
+# Erode the mask slightly, so that FSLeyes draws the corrp
+# image on top in its 3D view (otherwise, for thin corrp
+# regions, it may blend the corrp image into the mask)
+$FSLDIR/bin/fslmaths ${basename}_basestruct -kernel sphere 1 -ero ${basename}_basestruct
+$FSLDIR/bin/imrm ${basename}_{invmask_comps,filledstruct,invmask}
+$FSLDIR/bin/fsleyes \
+  $FSLDIR/data/standard/MNI152_T1_1mm_brain -c 65 -bf 0.001 -ns 300 \
+  ${basename}_basestruct  -dr 0 1 -cm blue-lightblue \
+  ${corrpim} -dr 0.95 1.0 -cm red-yellow

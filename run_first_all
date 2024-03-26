@@ -1,0 +1,241 @@
+#!/bin/sh
+
+#   run_first_all - wrapper script for "run_first" (which wraps "first" - the main FIRST fitting)
+#
+#   Brian Patenaude, Stephen Smith and Mark Jenkinson, FMRIB Image Analysis Group
+#
+#   Copyright (C) 2006-2009 University of Oxford
+#
+#   SHCOPYRIGHT
+
+Usage() {
+    echo ""
+    echo "Usage: `basename $0` [options] -i <input_image> -o <output_image>"
+    echo ""
+    echo "Optional arguments:"
+    echo "  -m <method>      : method must be one of auto, fast, none or a (numerical) threshold value"
+    echo "  -b               : input is already brain extracted"
+    echo "  -s <name>        : run only on one specified structure (e.g. L_Hipp) or a comma separated list (no spaces)"
+    echo "  -a <img2std.mat> : use affine matrix (do not re-run registration)"
+    echo "  -3               : use 3-stage affine registration (only currently for hippocampus)"
+    echo "  -d               : do not cleanup image output files (useful for debugging)"
+    echo "  -v               : verbose output"
+    echo "  -h               : display this help message"
+    echo ""
+    echo "e.g.:  `basename $0` -i im1 -o output_name "
+    exit 1
+}
+
+
+#########################################################################################################
+
+
+# deal with options
+structs="L_Accu L_Amyg L_Caud L_Hipp L_Pall L_Puta L_Thal R_Accu R_Amyg R_Caud R_Hipp R_Pall R_Puta R_Thal BrStem";
+BETdone=no;
+verbose=no;
+doReg=yes;
+bmeth=auto;
+cleanUp=yes;
+threestage=no;
+
+if [ $# -eq 0 ] ; then Usage; exit 0; fi
+# also accept old syntax for now (without -b option): <input_image> <threshold> <output_image>
+if [ $# -eq 3 ] ; then
+  iname=$1;
+  bmeth="$2";
+  oname=$3;
+else
+    args=`getopt i:o:m:s:a:bd3vh $*`
+    if [ $? != 0 ] ; then 
+	Usage
+    fi
+    set -- $args
+    for i
+      do
+      case "$i"
+	  in
+	  -b)
+	      BETdone=yes; 
+	      flirtopts="-b" ; 
+	      shift;;
+	  -3)
+	      threestage="yes";
+	      shift;;
+	  -v)
+	      verbose=yes; 
+	      shift;;
+	  -h)
+	      Usage;
+	      exit 0;;
+	  -d)
+	      cleanUp=no;
+	      shift;;
+	  -i)
+	      iname="$2";
+	      shift 2;;
+	  -o)
+	      oname="$2";
+	      shift 2;;
+	  -m)
+	      bmeth="$2";
+	      shift 2;;
+	  -a)
+	      doReg=no; 
+	      affmat="$2";
+	      if [ ! -f $affmat ] ; then
+		  echo "Error: cannot find affine matrix $affmat" >&2
+		  exit 1
+	      fi
+	      shift 2;;
+	  -s)
+	      structs=`echo "$2" | sed 's/,/ /g'`;
+	      shift 2;;
+      esac
+    done
+fi
+
+if [ `${FSLDIR}/bin/imtest $iname` = 0 ] ; then
+    echo "Error: cannot find image $iname" >&2
+    exit 1
+fi
+iname=`${FSLDIR}/bin/remove_ext $iname`
+
+if [ $bmeth = FAST ] ; then bmeth=fast; fi
+if [ $bmeth = NONE ] ; then bmeth=none; fi
+if [ $bmeth = AUTO ] ; then bmeth=auto; fi
+if [ $bmeth != fast ] && [ $bmeth != auto ] && [ $bmeth != none ] ; then
+    thresh=$bmeth;
+    bmeth=thresh;
+fi
+
+oname=`$FSLDIR/bin/remove_ext $oname`;
+
+if [ $verbose = yes ] ; then echo "STRUCTURES: $structs" ; fi
+
+# now do the work
+
+logdir=${oname}.logs
+if [ ! -d $logdir ] ; then mkdir $logdir ; fi
+
+FLIRTJOBHOLD="";
+if [ $doReg = yes ] ; then
+    if [ -w `dirname $iname` ] ; then
+	matname=${iname}_to_std_sub;
+    else
+	matname=${oname}_in_to_std_sub;
+    fi
+    if [ $threestage = yes ] ; then
+	flirtopts="$flirtopts -strucweight $FSLDIR/data/standard/MNI152_T1_1mm_Hipp_mask_dil8"
+    fi
+    if [ $verbose = yes ] ; then echo ${FSLDIR}/bin/first_flirt $iname ${matname} $flirtopts ; fi
+    FLIRTID=`${FSLDIR}/bin/fsl_sub -l $logdir -T 15 ${FSLDIR}/bin/first_flirt $iname ${matname} $flirtopts`
+    FLIRTJOBHOLD="-j $FLIRTID"
+    affmat=${matname}.mat
+fi
+COM=${oname}.com
+/bin/rm -f ${COM}*
+
+imscorr=""
+imsfirst=""
+
+for s in $structs; do
+    modelN=336
+    bcorr=1;
+    intref=0;
+    S_FIRST_4=`awk 'BEGIN {print substr("'$s'",3,4)}'`
+    case "${S_FIRST_4}" in 
+	Accu)
+	    nmodes=50
+	    ;;
+	Amyg)
+	    nmodes=50;
+	    intref=1;
+	    ;;
+	Caud)
+	    nmodes=30;
+	    intref=1;
+	    ;;
+	Hipp)
+	    nmodes=30;
+	    intref=1;
+	    ;;
+	Late)
+	    nmodes=40;
+	    intref=1;
+	    ;;
+	Pall)
+	    nmodes=40;
+	    bcorr=0;	   
+	    ;;
+	Puta)
+	    nmodes=40;
+	    bcorr=0;	
+	    ;;
+	Thal)
+	    nmodes=40;
+	    bcorr=0;	
+	    ;;
+	Stem)
+	    nmodes=40;
+	    ;;
+	*)
+	    echo "Structure $s unknown"
+	    exit 1
+	    
+    esac
+    
+    if [ "X$affmat" = X ] ; then
+	echo "Error: affine matrix not specified";
+	exit 1
+    fi
+    #run_first , choose between normal and intref
+    imfirst="${oname}-${s}_first"
+    imsfirst="${imsfirst} ${imfirst}"
+    if [ $intref = 0 ] ; then 
+	if [ $bcorr -eq 1 ] ; then 
+	    ${FSLDIR}/bin/fslecho "${FSLDIR}/bin/run_first -i $iname -t ${affmat} -n $nmodes -o ${imfirst} -m ${FSLDIR}/data/first/models_${modelN}_bin/${s}_bin.bmv\c" >> $COM
+	else
+	    ${FSLDIR}/bin/fslecho "${FSLDIR}/bin/run_first -i $iname -t ${affmat} -n $nmodes -o ${imfirst} -m ${FSLDIR}/data/first/models_${modelN}_bin/05mm/${s}_05mm.bmv\c" >> $COM
+	fi
+    else
+	S_CUT=`awk 'BEGIN {print substr("'$s'",1,1)}'`
+	${FSLDIR}/bin/fslecho "${FSLDIR}/bin/run_first -i $iname -t ${affmat} -n $nmodes -o ${imfirst} -m ${FSLDIR}/data/first/models_${modelN}_bin/intref_thal/${s}.bmv -intref ${FSLDIR}/data/first/models_336_bin/05mm/${S_CUT}_Thal_05mm.bmv\c" >> $COM
+    fi
+    
+    imcorr="${oname}-${s}_corr"
+    imscorr="${imscorr} ${imcorr}"
+    ##boundary correction
+    if [ $bmeth = auto ] ; then
+	# default is to use none for Thal,Puta,Pall and fast for the rest
+	btype=fast;
+	if [ $bcorr -ne 1 ] ; then btype=none; fi
+    else
+	btype=$bmeth;
+	if [ $bmeth = thresh ] ; then btype="thresh -t $thresh"; fi
+    fi
+   ${FSLDIR}/bin/fslecho "; ${FSLDIR}/bin/first_boundary_corr -s ${imfirst} -o ${imcorr} -i $iname -b $btype" >> $COM
+done
+
+if [ $verbose = yes ] ; then cat $COM ; fi
+HOLDID=`${FSLDIR}/bin/fsl_sub -l $logdir -T 60 -N first $FLIRTJOBHOLD -t $COM`
+
+if [ $btype = thresh ] ; then 
+    threshnop=`echo $thresh | sed 's/\.//g'`
+    methname=th${threshnop} ;
+else
+    methname=$btype ;
+fi
+
+numstruct=`echo $structs | wc -w`;
+if [ $numstruct -gt 1 ] ; then 
+    ${FSLDIR}/bin/fslecho "${FSLDIR}/bin/fslmerge -t ${oname}_all_${methname}_firstseg ${imscorr} ; ${FSLDIR}/bin/fslmerge -t ${oname}_all_${methname}_origsegs ${imsfirst} ; ${FSLDIR}/bin/first_mult_bcorr -i $iname -u ${oname}_all_${methname}_origsegs -c ${oname}_all_${methname}_firstseg -o ${oname}_all_${methname}_firstseg" > ${COM}2
+    if [ $verbose = yes ] ; then cat ${COM}2 ; fi
+    HOLDID=`$FSLDIR/bin/fsl_sub -l $logdir -T 15 -N first_post -j $HOLDID -t ${COM}2`
+    if [ $cleanUp = yes ] ; then
+	echo "${FSLDIR}/bin/imrm ${oname}-*_first* ${oname}-*_corr*" > ${COM}3
+	if [ $verbose = yes ] ; then cat ${COM}3 ; fi
+	HOLDID=`$FSLDIR/bin/fsl_sub -l $logdir -T 5 -N clean_up -j $HOLDID -t ${COM}3`
+    fi
+fi
+echo $HOLDID
