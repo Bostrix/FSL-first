@@ -16,7 +16,7 @@ CXX = g++
 
 # Specify the flags
 CXXFLAGS += -fpic
-LDFLAGS += -L/home/ubuntu/first/newimage -L/home/ubuntu/first/miscmaths -L/home/ubuntu/first/NewNifti -L/home/ubuntu/first/cprob -L/home/ubuntu/first/znzlib -L/home/ubuntu/first/utils
+LDFLAGS += -L/path/to/your/newimage -L/path/to/your/miscmaths -L/path/to/your/NewNifti -L/path/to/your/cprob -L/path/to/your/znzlib -L/path/to/your/utils
 
 # Define targets
 all: libfsl-meshclass.so ${XFILES}

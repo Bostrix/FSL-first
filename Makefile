@@ -8,11 +8,11 @@ CXXFLAGS += -fpic
 SRCS = first.cc first_mult_bcorr.cc first_utils.cc
 
 # Additional LDFLAGS for znzlib library
-ZNZLIB_LDFLAGS = -L/home/ubuntu/first/znzlib -lfsl-znz
+ZNZLIB_LDFLAGS = -L/path/to/your/znzlib -lfsl-znz
 # Additional LDFLAGS for meshclass library
-MESHCLASS_LDFLAGS = -L/home/ubuntu/first/meshclass -lfsl-meshclass
+MESHCLASS_LDFLAGS = -L/path/to/your/meshclass -lfsl-meshclass
 # Additional LDFLAGS for first_lib library
-FIRSTLIB_LDFLAGS = -L/home/ubuntu/first/first_lib -lfsl-first_lib
+FIRSTLIB_LDFLAGS = -L/path/to/your/first_lib -lfsl-first_lib
 
 # Define object files
 OBJS = $(SRCS:.cc=.o)
