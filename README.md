@@ -52,7 +52,7 @@ Once the modifications have been saved, you may use the following command in you
 ```
 make
 ```
-The command executes the Makefile in the mesh class and rebuilds it separately based on the modified configuration and source code changes. After re-running the make command, return to the main flirt directory by `cd ..` and attempt to rebuild the project again.
+The command executes the Makefile in the mesh class and rebuilds it separately based on the modified configuration and source code changes. After re-running the make command, return to the main first directory by `cd ..` and attempt to rebuild the project again.
 ## Compiling 
 Execute the appropriate compile command to build the first tool.
 ```bash
