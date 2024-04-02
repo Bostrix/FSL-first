@@ -52,4 +52,4 @@ libraries:
 
 # Clean rule
 clean:
-	rm -f first $(OBJS) $(LIB_OBJS)
+	rm -f first first_utils first_mult_bcorr $(OBJS) $(LIB_OBJS) $(shell find . -type f \( -name "*.o" -o -name "*.so" \))
