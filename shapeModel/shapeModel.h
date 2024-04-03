@@ -12,7 +12,7 @@
 
 #include <string>
 #include <vector>
-#include "/home/ubuntu/FSL-first/shapeModel/newimage/newimageall.h"
+#include "/home/ubuntu/FSL-first/newimage/newimageall.h"
 
 namespace SHAPE_MODEL_NAME{
 
