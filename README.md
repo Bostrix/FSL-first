@@ -4,7 +4,7 @@
 Welcome to FIRST, a cutting-edge tool for precise segmentation and registration of brain structures from T1-weighted images. This guide will demonstrate how to leverage FIRST's advanced capabilities for shape modeling and intensity-based registration tasks.
 
 
-For more information about First and related tools, visit the FMRIB Software Library (FSL) website:[FSL Git Repository](https://git.fmrib.ox.ac.uk/fsl). You can also find additional resources and documentation on FIRST on the FSL wiki page: [First Documentation](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST).
+For more information about First and related tools, visit the FMRIB Software Library (FSL) website:[FSL Git Repository](https://git.fmrib.ox.ac.uk/fsl) and you can also find additional resources and documentation on FIRST on the FSL wiki page: [First Documentation](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FIRST).
 ## Clone the Repository
 
 Begin by cloning the project repository from GitHub onto your local machine. You can do this by running the following command in your terminal or command prompt:
