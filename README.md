@@ -33,11 +33,15 @@ sudo apt-get install zlib1g zlib1g-dev
 
 ## Compilation
 To compile First, follow these steps:
+
 - Ensure correct path in Makefile:
 After installing the necessary tools, verify correct path in the makefile to include additional LDFLAGS for the required libraries. For instance, if utilizing the warpfns library, basisfield library, meshclass library, miscmaths library, and zlib, ensure that the correct path is present in the makefile.
 Make sure `$(WARPFNS_LDFLAGS)`,`$(ZNZLIB_LDFLAGS)` are included in the compile step of the makefile.
+
+- Confirm that the file shapeModel.h within the shapeModel library accurately includes the path to newimage/newimageall.h.
+
 - Verify the accurate paths in meshclass's Makefile:
-verify the correct path in the makefile of meshclass to include additional LDFLAGS for the required libraries. For instance, if utilizing the newimage,miscmaths,NewNifti,cprob,znzlib,utils libraries as LDFLAGS variable in meshclass makefile,ensure that the correct path is present in the makefile.
+verify the correct path in the makefile of meshclass to include additional LDFLAGS for the required libraries. For instance, if utilizing the newimage, miscmaths, NewNifti, cprob, znzlib and utils libraries as LDFLAGS variable in meshclass makefile,ensure that the correct path is present in the makefile.
 ```bash
 make
 ```
