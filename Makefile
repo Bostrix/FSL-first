@@ -8,17 +8,17 @@ CXXFLAGS += -fpic
 SRCS = first.cc first_mult_bcorr.cc first_utils.cc
 
 # Additional LDFLAGS for znzlib library
-ZNZLIB_LDFLAGS = -L/path/to/your/znzlib -lfsl-znz
+ZNZLIB_LDFLAGS = -L${HOME}/FSL-first/znzlib -lfsl-znz
 # Additional LDFLAGS for meshclass library
-MESHCLASS_LDFLAGS = -L/path/to/your/meshclass -lfsl-meshclass
+MESHCLASS_LDFLAGS = -L${HOME}/FSL-first/meshclass -lfsl-meshclass
 # Additional LDFLAGS for first_lib library
-FIRSTLIB_LDFLAGS = -L/path/to/your/first_lib -lfsl-first_lib
+FIRSTLIB_LDFLAGS = -L${HOME}/FSL-first/first_lib -lfsl-first_lib
 
 # Define object files
 OBJS = $(SRCS:.cc=.o)
 
 # Define library source files and directories
-LIB_DIRS = shapeModel first_lib fslvtkio meshclass newimage miscmaths NewNifti cprob znzlib utils 
+LIB_DIRS = shapeModel first_lib fslvtkio newimage miscmaths NewNifti cprob znzlib utils meshclass
 LIB_SRCS = $(foreach dir,$(LIB_DIRS),$(wildcard $(dir)/*.cc))
 LIB_OBJS = $(LIB_SRCS:.cc=.o)
 
